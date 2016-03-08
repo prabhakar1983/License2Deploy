@@ -5,6 +5,7 @@ import boto
 import os
 from boto.ec2.autoscale.launchconfig import LaunchConfiguration
 from boto.ec2.autoscale.group import AutoScalingGroup
+from boto.ec2.cloudwatch.alarm import MetricAlarm
 from moto import mock_autoscaling
 from moto import mock_ec2
 from moto import mock_elb
@@ -21,6 +22,8 @@ class RollingDeployTest(unittest.TestCase):
   GMS_LAUNCH_CONFIGURATION_PRD = 'server-backend-prd-servergmsextenderLCprd-46TIE5ZFQTLB'
   GMS_AUTOSCALING_GROUP_STG = 'server-backend-stg-servergmsextenderASGstg-3ELOD1FOTESTING'
   GMS_AUTOSCALING_GROUP_PRD = 'server-backend-prd-servergmsextenderASGprd-3ELOD1FOTESTING'
+  GMS_CLOUDWATCH_GROUP_STG =  'server-backend-stg-servergmsextenderCloudWatchstg-3ELOD1FOTESTING'
+
   @mock_autoscaling
   @mock_elb
   @mock_ec2
@@ -269,6 +272,17 @@ class RollingDeployTest(unittest.TestCase):
 
   def test_decrease_autoscale_instance_count(self):
     self.assertEqual(self.rolling_deploy.decrease_autoscale_instance_count(4), 2)
+
+  def test_cloudwatch_filter_function_with_no_alarm(self):
+    bad_alarm = MetricAlarm(name="xyz_CloudWatchAlarm", metric="CPUUtilization", namespace="AWS/EC2")
+    cloud_watch_alarms = filter(lambda alarm : self.rolling_deploy.project in alarm.name and self.rolling_deploy.env in alarm.name, [ bad_alarm])
+    self.assertEqual(0, len(cloud_watch_alarms))
+
+  def test_cloudwatch_filter_function_with_1_alarm(self):
+    bad_alarm = MetricAlarm(name="xyz_CloudWatchAlarm", metric="CPUUtilization", namespace="AWS/EC2")
+    good_alarm = MetricAlarm(name=self.GMS_CLOUDWATCH_GROUP_STG, metric="CPUUtilization", namespace="AWS/EC2")
+    cloud_watch_alarms = filter(lambda alarm : self.rolling_deploy.project in alarm.name and self.rolling_deploy.env in alarm.name, [bad_alarm, good_alarm])
+    self.assertEqual(1, len(cloud_watch_alarms))
 
 def main():
     unittest.main()
