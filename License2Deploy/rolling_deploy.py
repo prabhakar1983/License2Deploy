@@ -230,8 +230,11 @@ class RollingDeploy(object):
     except Exception as e:
       logging.error("Error while retrieving the list of cloud-watch alarms. Error: {0}".format(e))
       exit(self.exit_error_code)
+    print all_cloud_watch_alarms
+    print self.env
+    print self.project
     project_cloud_watch_alarms = filter(lambda alarm: self.project in alarm.name and self.env in alarm.name, all_cloud_watch_alarms)
-    if len(self.cloud_watch_alarms) == 0:
+    if len(project_cloud_watch_alarms) == 0:
        logging.info("No cloud-watch alarm found")
     return project_cloud_watch_alarms
 
